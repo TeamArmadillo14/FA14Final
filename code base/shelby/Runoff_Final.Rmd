@@ -1,0 +1,323 @@
+---
+title: "Temperature and Run-off"
+author: "Shelby Takenouchi"
+date: "Monday, December 01, 2014"
+output: word_document
+---
+
+What follows is an examination of the extent to which average monthly regional temperatures and the runoff of nearby waterways on the Merced and Tuolumne watersheds:
+
+a)  Do or do not demonstrate stationarity.
+
+b)  Are or are not correlated.
+
+
+The temperature data used during this part of the analysis was gathered from six weather stations around the Yosemite/Sierra Nevada/Central Valley area (three each from the Merced and Tuolumne watersheds). Of the many discharge gauges established, monitored, and made available through the U.S. Geological Survey, only four were considered near enough to the associated weather station to be used in this study.
+
+The years studied varied slightly between the pertinent stations, but all fell within the 2000-2014 range. Each data set was examined as a time series and all but two were analyzed with a correlational test using RStudio.  
+
+
+#Stationarity
+
+```{r, echo=FALSE}
+load("G:/MetStations/PrecipStations/YOW_precip_inc_01_13.Rda")
+precip<-YOW_precip_inc_01_13
+precipmeans = aggregate(cbind(precip_inc_mm) ~ monthYr, data=precip, mean)
+
+```
+
+
+##R Code: 
+###Temperature: Loading and Aggregating Data
+
+The following code blocks are examples of the functions with which temperature data for each station was imported:
+```{r}
+load("G:/MetStations/MCD_Crane_Flats_01_13.Rda")
+```
+relabeled:
+```{r}
+CFlats<-MCD_Crane_Flats_01_13
+```
+ and aggregated:
+```{r}
+CFmeans = aggregate(cbind(Speed,Direc,Temp,Humidty,Rad.) ~ monthYr, data=CFlats, mean)
+```
+to create new objects holding the mean temperature for each month in the given data set.
+In this example, the data set was from the weather station positioned at Crane Flat on the Merced Watershed.
+
+
+```{r,echo=FALSE}
+
+#JERSEY DALE
+load("G:/MetStations/MCD_Jersey_Dale_02_13.Rda")
+JDale<-MCD_Jersey_Dale_02_13
+#Aggregate to have all info combined into monthly means, medians
+JDmonthmeans = aggregate(cbind(Speed,Direc,Temp,Humidty,Rad.) ~ monthYr, data=JDale, mean)
+JDmonthmeds = aggregate(cbind(Speed,Direc,Temp,Humidty,Rad.) ~ monthYr, data=JDale, median)
+
+#JDmonthmax = aggregate(cbind(Speed,Direc,Temp,Humidty,Rad.) ~ monthYr, data=JDale, max)
+#JDmonthmin = aggregate(cbind(Speed,Direc,Temp,Humidty,Rad.) ~ monthYr, data=JDale, min)
+
+JD.temp.mo.mean = ts(as.vector(tapply(JDmonthmeans$Temp,list(JDmonthmeans$monthYr), mean)), frequency=12)
+#plot.ts(window(JD.temp.mo.med), main="Jerseydale Median Temp.")
+
+
+#METACALF GAP
+load("G:/MetStations/MCD_Metcalf_Gap_01_13.Rda")
+MCGap<-MCD_Metcalf_Gap_01_13
+#SiteTemp
+MCGapmeans = aggregate(cbind(Speed,Direc,Temp,Humidty,Rad.) ~ monthYr, data=MCGap, mean)
+MCGapmeds = aggregate(cbind(Speed,Direc,Temp,Humidty,Rad.) ~ monthYr, data=MCGap, median)
+
+MG.temp.mo.mean = ts(as.vector(tapply(MCGapmeans$Temp,list(MCGapmeans$monthYr), mean)), frequency=12)
+
+#GAYLOR MEADOW
+load("G:/MetStations/TU_Gaylord_Meadows_01_11.Rda")
+Gaylord<-TU_Gaylord_Meadows_01_11
+Gaylordmeans = aggregate(cbind(Speed,Direc,Temp,Humidty) ~ monthYr, data=Gaylord, mean)
+Gaylordmeds = aggregate(cbind(Speed,Direc,Temp,Humidty) ~ monthYr, data=Gaylord, median)
+GM.temp.mo.mean = ts(as.vector(tapply(Gaylordmeans$Temp,list(Gaylordmeans$monthYr), mean)), frequency=12)
+
+#WHITE WOLF
+load("G:/MetStations/TU_White_Wolf_01_13.Rda")
+WWolf<- TU_White_Wolf_01_13
+WWolfmeans = aggregate(cbind(Speed,Direc,Temp,Humidty,Rad.) ~ monthYr, data=WWolf, mean)
+WWolfmeds = aggregate(cbind(Speed,Direc,Temp,Humidty,Rad.) ~ monthYr, data=WWolf, median)
+WW.temp.mo.mean = ts(as.vector(tapply(WWolfmeans$Temp,list(WWolfmeans$monthYr), mean)), frequency=12)
+
+#MT. ELIZABETH
+load("G:/MetStations/TU_Mt_Elizabeth_01_13.Rda")
+MtEli<- TU_Mt_Elizabeth_01_13
+MtElimeans = aggregate(cbind(Speed,Direc,Temp,Humidty,Rad.) ~ monthYr, data=MtEli, mean)
+MtElimeds = aggregate(cbind(Speed,Direc,Temp,Humidty,Rad.) ~ monthYr, data=MtEli, median)
+ME.temp.mo.mean = ts(as.vector(tapply(MtElimeans$Temp,list(MtElimeans$monthYr), mean)), frequency=12)
+
+```
+
+
+
+###Run-Off: Subsetting and Converting 
+  While Crane Flat and Gaylor Meadows were excluded when considering run-off, data for each of the other sites was handled using the functions demonstrated by the following code blocks, which handle the Jersey Dale site on the Merced watershed:
+
+Loading USGS Data:
+```{r}
+jd_monthly <- read.table("G:/ENVE Project/Project Data/Discharge/jd.monthly", header=TRUE, quote="\"")
+```
+
+Creating subsets to remove irrelevant rows and years:
+```{r}
+  #Remove top row (non-applicable values)
+jd_mon = subset(jd_monthly, agency_cd!="5s")
+  #subset for years also in weather station data
+jd_mon$year_nu=as.character(jd_mon$year_nu)
+jd_mon$year_nu=as.numeric(jd_mon$year_nu)
+jd_mon = jd_mon[jd_mon$year_nu>2001,]
+```
+
+Converting values to different object types for easier manipulation:
+```{r}
+  #Convert yr_month to posix item 
+jd_mon$yr_month=paste(jd_mon$year_nu, jd_mon$month_nu, "01", sep="-")
+jd_mon$yr_month = as.POSIXct(jd_mon$yr_month,format="%Y-%m-%d")
+  #convert monthly mean value runoff from character to numeric
+jd_mon$mean_va=as.numeric(jd_mon$mean_va)
+```
+
+```{r, echo=FALSE}
+#Metacalf Gap
+MCGap <- read.table("C:/Users/Shelby/Downloads/monthly (3)", header=TRUE, quote="\"")
+mcg_mon = subset(MCGap, agency_cd!="5s")
+
+mcg_mon$yr_month=paste(mcg_mon$year_nu, mcg_mon$month_nu, "01", sep="-")
+mcg_mon$yr_month = as.POSIXct(mcg_mon$yr_month,format="%Y-%m-%d")
+mcg_mon$monthYr=strftime(mcg_mon$yr_month, format="%Y/%m")
+
+mcg_mon$mean_va=as.numeric(mcg_mon$mean_va)
+```
+
+```{r, echo=FALSE}
+#White Wolf
+ww <- read.table("G:/ENVE Project/Project Data/Discharge/ww_monthly", header=TRUE, quote="\"")
+ww_mon = subset(ww, agency_cd!="5s")
+ww_mon$year_nu=as.character(ww_mon$year_nu)
+ww_mon$year_nu=as.numeric(ww_mon$year_nu)
+ww_mon = ww_mon[ww_mon$year_nu>1999,]
+
+ww_mon$yr_month=paste(ww_mon$year_nu, ww_mon$month_nu, "01", sep="-")
+ww_mon$yr_month = as.POSIXct(ww_mon$yr_month,format="%Y-%m-%d")
+
+ww_mon$mean_va=as.numeric(ww_mon$mean_va)
+```
+
+```{r, echo=FALSE}
+#Mt. Elizabeth
+me <- read.table("G:/ENVE Project/Project Data/Discharge/me_monthly", header=TRUE, quote="\"")
+me_mon = subset(me, agency_cd!="5s")
+me_mon$year_nu=as.character(me_mon$year_nu)
+me_mon$year_nu=as.numeric(me_mon$year_nu)
+me_mon = me_mon[me_mon$year_nu>1999,]
+
+me_mon$yr_month=paste(me_mon$year_nu, me_mon$month_nu, "01", sep="-")
+me_mon$yr_month = as.POSIXct(me_mon$yr_month,format="%Y-%m-%d")
+
+me_mon$mean_va=as.numeric(me_mon$mean_va)
+```
+
+###Creating and Plotting a Time Series Object
+
+The following code (using precipitation data as an example) demonstrates how the function ts() was used to convert the temperature and runoff data into a time-series object:
+```{r}
+precip.mo.afs.mean = ts(as.vector(tapply(precipmeans$precip_inc_mm,list(precipmeans$monthYr), mean)), frequency=13)
+```
+in order to then graph the data as a time series:
+```{r}
+plot.ts(window(precip.mo.afs.mean), main="Precipitation")
+```
+
+
+##Graphs: 
+
+A time-series can be defined as non-stationary when there is an apparent trend over time; traditionally these trends emerge when examining data over multiple decades. However, due to limited data, the following graphs only examine a single decade (give or take a few years.) Yet, with such a small temporal range, it might still be that similar trends can be observed within the temperature and run-off data for each site.
+
+Let's see what patterns (if any) emerge.
+
+###Merced Watershed
+
+####Crane Flat
+
+```{r, echo=FALSE}
+CF.temp.mo.mean = ts(as.vector(tapply(CFmeans$Temp,list(CFmeans$monthYr), mean)), frequency=12)
+plot.ts(window(CF.temp.mo.mean), main="Crane Flat Temperature")
+```
+
+A slight upward trend may be present in the Crane Flat.
+
+####Jersey Dale
+
+```{r, echo=FALSE}
+plot.ts(window(JD.temp.mo.mean), main="Jersey Dale Temperature")
+JD.runoff.mo.mean = ts(as.vector(jd_mon$mean_va), frequency=12)
+plot.ts(window(JD.runoff.mo.mean), main="Jersey Dale Runoff")
+```
+
+The minimum value for Jersey Dale Runoff seems to be decreasing, however the temperature range appears to be consistent throughout. 
+
+####Metacalf Gap
+
+```{r, echo=FALSE}
+plot.ts(window(MG.temp.mo.mean), main="Metacalf Gap Temperature")
+MG.runoff.mo.mean = ts(as.vector(mcg_mon$mean_va), frequency=12)
+plot.ts(window(MG.runoff.mo.mean), main="Metacalf Gap Runoff")
+```
+
+No obvious trends or commonalities can be observed in either data set for Metacalf Gap.
+
+###Tuolumne Watershed
+
+####Gaylor Meadow
+
+```{r, echo=FALSE}
+plot.ts(window(GM.temp.mo.mean), main="Gaylor Meadow Temperature")
+```
+
+There are no noticeable trends in the average monthyl temperature recorded at the Gaylor Meadow site.
+
+####White Wolf
+
+```{r, echo=FALSE}
+plot.ts(window(WW.temp.mo.mean), main="White Wolf Temperature")
+WW.runoff.mo.mean = ts(as.vector(ww_mon$mean_va), frequency=12)
+plot.ts(window(WW.runoff.mo.mean), main="White Wolf Runoff")
+```
+
+The temperature series for the White Wolf site seems to be increasing slightly, while the runoff data seems to fluctuate unpredictably.
+
+####Mt. Elizabeth
+
+```{r, echo=FALSE}
+plot.ts(window(ME.temp.mo.mean), main="Mt. Elizabeth Temperature")
+ME.runoff.mo.mean = ts(as.vector(me_mon$mean_va), frequency=12)
+plot.ts(window(ME.runoff.mo.mean), main="Mount Elizabeth Runoff")
+```
+
+The respective peaks of the Mt. Elizabeth runoff and temperature charts seem to follow a similar pattern, increasing and decreasing during the same years. However the valleys appear unrelated. 
+
+
+#Correlation 
+
+Visual commonalities between the temperature and runoff time series were observed for only the site at Mt. Elizabeth. Using correlational tests, we can assess the accuracy of our observations of the time-series.
+
+##R Code:
+###Inclusive Subsetting, Correlation test
+```{r}
+ww_mon$monthYr=strftime(ww_mon$yr_month, format="%Y/%m")
+```
+
+In order to use the cor.test() function in R, the two columns being compared must have an equal number of rows. The following code creates subsets of one data set only using rows whose values for a specific column match those within the same column of another set:
+```{r}
+WWolfmeans_3=WWolfmeans[(WWolfmeans$monthYr %in% ww_mon$monthYr),]
+ww_mon2=ww_mon[(ww_mon$monthYr %in% WWolfmeans_3$monthYr),]
+```
+
+And the function cor.test() compares the selected variables of the two data sets, displaying the p-value and correlation coefficient. 
+
+##Tests and Results:
+
+The following are the results of running the correlational test between the temporally equal temperature and run-off data.
+
+###Merced Watershed
+
+####Jersey Dale
+
+```{r, echo=FALSE}
+cor.test(JDmonthmeans$Temp, jd_mon$mean_va)
+```
+
+The low p-value gives a strong indication that the null hypothesis is not true, and that there is a correlation between the two variables. The correlation coefficient of 0.460339 indicates a strong positive correlation between temperature and run-off. 
+
+####Metacalf Gap
+
+```{r, echo=FALSE}
+MCGapmeans_1=MCGapmeans[(MCGapmeans$monthYr %in% mcg_mon$monthYr),]
+cor.test(MCGapmeans_1$Temp, mcg_mon$mean_va)
+```
+
+The correlation test for Metacalf Gap yields an even lower p-value, further rejecting the null hypothesis of no correlation, but a very weak negative correlation between runoff and temperature. 
+
+###Tuolumne Watershed
+
+####White Wolf
+
+```{r, echo=FALSE}
+ww_mon$monthYr=strftime(ww_mon$yr_month, format="%Y/%m")
+WWolfmeans_3=WWolfmeans[(WWolfmeans$monthYr %in% ww_mon$monthYr),]
+ww_mon2=ww_mon[(ww_mon$monthYr %in% WWolfmeans_3$monthYr),]
+cor.test(WWolfmeans_3$Temp, ww_mon2$mean_va)
+```
+
+The p-value given here is greater than 0.1, thus there is no presumption against the null hypothesis; and it can be presumed that, for this site, temperature and runoff are not correlated. 
+
+####Mt. Elizabeth
+
+```{r, echo=FALSE}
+me_mon$monthYr=strftime(me_mon$yr_month, format="%Y/%m")
+me_mon2=me_mon[(me_mon$monthYr %in% MtElimeans$monthYr),]
+MtElimeans_2=MtElimeans[(MtElimeans$monthYr %in% me_mon2$monthYr),]
+cor.test(MtElimeans_2$Temp, me_mon2$mean_va)
+```
+
+Finally, we see again a low p-value and a high correlation coefficient; indicating that the runoff and temperature are much more likely to be correlated at the sites for Mt. Elizabeth.
+
+#Limitations
+
+The two most profound limiting factors in this examination are the lack of consideration for other factors which affect runoff, and the distance between the sites used for the temperature and runoff data. 
+
+In this analysis, only temperature was assessed and correlated to the discharge measured at various waterways in the Central Valley/Sierra Nevada regions. In reality, there are dozens of co-occuring, correlated variables. Precipitation is one, as are the characteristics/moisture levels of the earth surrounding the waterway. The local water use is also a very important factor when looking at runoff. Additionally, many of these waterways (in fact, all of them) are controlled using dams, which respond to the water demands of the designated areas which they service. 
+None of these factors were considered in this section due to a lack of easily available data for each arena, and a dearth of sufficient time and initiative required to discover it.
+
+The first law of geography asserts that there is a directly proportional relationship between closeness and similarity. The closer things are in space, the more similar they will be. If this holds true in this case, it could be ventured that the sites which demonstrated the least correlation are the furthest apart. 
+
+The Sierra Nevada weather stations were not placed with consideration for the USGS runoff gages, so we used maps to make very rough estimates for which runoff gages would be most appropriate to examine in relation to the already-selected weather stations. 
+Adittionally, temporal congruence was an important factor to consider, and in many cases, spatial proximity was sacrificed for more accurate and updated temporal information. The final choices can be seen in the following figure:
+
+#***LORENZO, PLEASE INSERT MAP HERE AT END***

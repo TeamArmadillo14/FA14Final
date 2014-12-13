@@ -1,0 +1,89 @@
+---
+title: "Projects'"
+author: "Uchechi Akabogu"
+date: "Tuesday, November 11, 2014"
+output: word_document
+---
+
+
+
+```{r,fig.width=6,fig.height=9}
+par(mfrow=c(3,2))
+setwd("F:/ENVE 105/Project")
+redata<-read.csv(file = "Recreational_Data_summary.csv")
+readme <- read.csv(file = "Recreational_Data.csv")
+load("C:/Users/Uchechi/Dropbox/EnvE105/MetStations/MCD_Crane_Flats_01_13.Rda")
+load("C:/Users/Uchechi/Dropbox/EnvE105/MetStations/TU_White_Wolf_01_13.Rda")
+load("C:/Users/Uchechi/Dropbox/EnvE105/MetStations/TU_Mt_Elizabeth_01_13.Rda")
+
+#str(redata)
+#str(readme)
+#View(MCD_Crane_Flats_01_13)
+
+CF_Monthly_Means = aggregate(cbind(Speed,Direc,Temp,Humidty,Rad.) ~ monthYr, data=MCD_Crane_Flats_01_13, mean)
+
+Mt_Eli_Monthly_Means = aggregate(cbind(Speed,Direc,Temp,Humidty,Rad.) ~ monthYr, data=TU_Mt_Elizabeth_01_13, mean)
+
+TU_WhiteWolf_Monthly_Means=  aggregate(cbind(Speed,Direc,Temp,Humidty,Rad.) ~ monthYr, data=TU_White_Wolf_01_13, mean)
+
+plot(CF_Monthly_Means$Temp, pch=16, cex=0.4)
+lines(CF_Monthly_Means$Temp)
+
+plot(Mt_Eli_Monthly_Means$Temp, pch=16, cex=0.4)
+lines(Mt_Eli_Monthly_Means$Temp) 
+
+plot(TU_WhiteWolf_Monthly_Means$Temp, pch=16, cex=0.4)
+lines(TU_WhiteWolf_Monthly_Means$Temp)
+                             
+Mt_Eli_Yr = aggregate((cbind(Speed,Direc,Temp,Humidty,Rad.))~strftime(TU_Mt_Elizabeth_01_13$date_time,format = "%Y"),data = TU_Mt_Elizabeth_01_13, mean)
+
+#subset the recreational data by water year
+#Always subset the readme data to match the water year u are plotting
+
+readme$month_nu = paste(readme$Year,readme$Month,'01',sep='-')
+readme$month_nu = as.POSIXct(readme$month_nu, format='%Y-%B-%d')
+readme$y_m<-strftime(readme$month_nu,format="%Y/%m")
+#changing the data just from months to the desired format
+
+Wtym2 = readme[(readme$y_m  %in% CF_Monthly_Means$monthYr),]
+Wtym1 = readme[(readme$y_m  %in% Mt_Eli_Monthly_Means$monthYr),]
+Wtym = readme[(readme$y_m  %in% TU_WhiteWolf_Monthly_Means$monthYr),]
+# changing the rows of the recreational year to match with the water year
+
+Wtym$Temp = TU_WhiteWolf_Monthly_Means$Temp
+Wtym1$Temp = Mt_Eli_Monthly_Means$Temp
+Wtym2$Temp = CF_Monthly_Means$Temp
+# Including the Temp values into the Wtym dataframe
+
+
+for(i in 3:9){
+  plot(Wtym[,i],TU_WhiteWolf_Monthly_Means$Temp, ylab ="Temp (C)", xlab = colnames(Wtym[i]))
+  plot(Wtym1[,i],Mt_Eli_Monthly_Means$Temp, ylab ="Temp (C)", xlab = colnames(Wtym1[i]))
+  plot(Wtym2[,i],CF_Monthly_Means$Temp, ylab ="Temp (C)", xlab = colnames(Wtym2[i]))
+  lm(Wtym[,i]~TU_WhiteWolf_Monthly_Means$Temp)
+  lm(Wtym1[,i]~Mt_Eli_Monthly_Means$Temp)
+  lm(Wtym2[,i]~CF_Monthly_Means$Temp)
+}  
+# From the graphs above, one can see that there is a positive corellation between the increase in number of camping and the rise in temperature
+# Linear correlation
+
+library(ggplot2)
+ for(i in 3:9){
+   print(ggplot(Wtym) + geom_point(aes(x=month_nu , y= Wtym[,i], size = 3, color=Temp)) + 
+     labs(list(x = "Year", y = colnames(Wtym[i]))) +
+     scale_colour_gradientn(colours=rainbow(4)))
+   }
+#    print(ggplot(Wtym) + geom_point(aes(x=month_nu , y= Wtym[,i], color=Temp)) + 
+#      labs(list( x = "Year", y = colnames(Wtym1[i]))) +
+#      scale_colour_gradientn(colours=rainbow(4)))
+#    print(ggplot(Wtym) + geom_point(aes(x=month_nu , y= Wtym[,i], color=Temp)) + 
+#      labs(list(x = "Year", y = colnames(Wtym2[i]))) +
+#      scale_colour_gradientn(colours=rainbow(4)))
+
+#I commented the other ggplot, because it shows the same conclusion as the first, so it just a repetition but it is useful for comapering temperature at other sites of Yosemite.
+```
+
+I compared the months of the year with the number of camper (recreation activites), From the plots above, one can see that at higher temperature and summer times the number of hikers and campers(for recreational purpose) goes up. This shows a positive correlation between higher temperature and number of outdoor recreational activites excluding the boating or fishing activites.
+
+
+

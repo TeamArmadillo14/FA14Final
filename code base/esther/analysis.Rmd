@@ -1,0 +1,45 @@
+---
+title: "analysis"
+author: "user"
+date: "12/07/2014"
+output: html_document
+---
+
+
+```{r}
+load("/home/user/FA14/ENVE105/Project Resources/resources/metstations_monthly_avg/YOW_precip_total.Rda")
+Fire_Freq = YOW_precip_total
+
+Fires_Acres = read.csv("Fires_Acres.csv")
+Fire_Freq = Fire_Freq[13:122,]
+Fires_Acres = Fires_Acres[15:124,]
+Fire_Freq$FireEvents = Fires_Acres$Fire.events
+Fire_Freq$AcresBurned = Fires_Acres$Acres
+str(Fire_Freq)
+```
+
+```{r}
+#precip v fire events
+plot(Fire_Freq$precip_inc_mm, Fire_Freq$FireEvents)
+
+#precip v acres burned
+plot(Fire_Freq$precip_inc_mm, Fire_Freq$AcresBurned)
+```
+
+```{r}
+fit1 = lm(FireEvents ~ precip_inc_mm, data = Fire_Freq)
+summary(fit1)
+
+Fire_Freq$AcresBurned = as.numeric(as.character(Fire_Freq$AcresBurned))
+fit2 = lm(AcresBurned ~ precip_inc_mm, data = Fire_Freq)
+summary(fit2)
+```
+
+```{r}
+plot(Fire_Freq$precip_inc_mm, Fire_Freq$FireEvents)
+abline(fit1,col="red",lwd=2)
+
+plot(Fire_Freq$precip_inc_mm, Fire_Freq$AcresBurned)
+abline(fit2,col="red",lwd=2)
+```
+

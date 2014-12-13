@@ -1,0 +1,38 @@
+---
+title: "ExtrmWthr"
+author: "user"
+date: "11/30/2014"
+output: html_document
+---
+
+# Data retrieval and EDA
+Leap years were removed and the information was labeled by water year.
+```{r prep_dates}
+# let target = MCD_Metcalf_Gap_01_13
+target = MCD_Metcalf_Gap_01_13
+target[,c("year","month","day")] = 
+  as.numeric(c(strftime(target$date_time, format="%Y"), 
+    strftime(target$date_time, format="%m"), 
+    strftime(target$date_time, format="%d"))) # Populate year, month, day columns
+target$wy = ifelse(target$month > 9, target$year + 1, target$year) # Define water year
+target$wym = ifelse(target$month > 9, target$month - 9, target$month + 3) # Define water year month
+# Remove leap days (defined by years where there exists a Feb. 29)
+target = target[!(target$month == 2 & target$day == 29),]
+```
+
+If our analysis focuses on wind speed...
+```{r}
+# How many rows are we going to drop? (NAs in target variable)
+sum(is.na(target[,'Temp']))
+# Lets drop them
+target = target[!is.na(target[,'Temp']),]
+```
+
+For time series construction
+```{r}
+target.windSpd.mean = ts(as.vector(tapply(target$Temp, list(target$wym, target$wy), mean)), frequency=12)
+plot.ts(target.windSpd.mean)
+library(forecast)
+plot.ts(tsclean(target.windSpd.mean))
+```
+

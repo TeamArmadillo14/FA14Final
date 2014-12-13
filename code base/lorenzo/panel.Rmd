@@ -1,0 +1,34 @@
+---
+title: "Data Preview"
+author: "Lorenzo Booth (asmtry)"
+date: "12/12/2014"
+output: html_document
+runtime: shiny
+---
+
+The dataset used in the Team Armadillo project comprised of approximately 10 years of weather station observations given to one of our group members. The measurements existed in various degrees of integrity and completeness--much of the information was a direct export from the [RAWS](http://raws.fam.nwcg.gov/) network (presumably via [WRCC](http://www.wrcc.dri.edu/)).
+
+This application offers various previews of a time series average for various parameters from the RAWS stations used for the bulk of each team member's analysis.
+
+
+
+```{r echo = FALSE}
+source("./RAWS_plotter.R")
+
+selectInput("site", "Choose a site:",
+  choices = site_list, 
+  selected = site_list[2])
+selectInput("parameter", "Choose a parameter:",
+  choices = parameter_list, 
+  selected = parameter_list[1])
+renderText({ 
+      paste("You have selected the", input$site, "site and the", input$parameter, "parameter.")})
+```
+
+```{r echo = FALSE}
+renderPlot(RAWS_plot(input$site, input$parameter, "raw"))
+renderText({ 
+      paste("Correcting for outliers and missing values with 'na.interp' and 'tsoutliers' from the forecast package procudes:")})
+renderPlot(RAWS_plot(input$site, input$parameter, "filled"))
+
+```

@@ -1,0 +1,76 @@
+---
+title: "Notes for Group"
+author: "Lorenzo Booth (asmtry)"
+output: html_document
+---
+What follows is just a running log for early 'development'.
+
+# Merced Watershed Stations
+# Crane Flats
+  * Water Years: 2001-2013
+  * Properties: date_time, speed, direc, temp humidity, rad
+## Jerseydale
+  * Water Years: 2002-2013 (!!! Starts at 2002!)
+  * Properties: date_time, speed, direc, temp humidity, rad
+## Metcalf Gap
+  * Water Years: 2001-2013
+  * Properties: date_time, speed, direc, temp humidity, rad
+
+# Tuolumne Watershed Stations
+## Gaylord Meadows
+  * Water Years: 2001-2011 (!!! Ends at 2011!)
+  * Properties: date_time, speed, direc, temp humidity, rad
+## Mt. Elizabeth
+  * Water Years: 2001-2013
+  * Properties: date_time, speed, direc, temp humidity, rad
+## White Wolf
+  * Water Years: 2001-2013
+  * Properties: date_time, speed, direc, temp humidity, rad
+
+# Treatments applied so far, using Crane_Flat_RAWS as an example
+The part of the function that compiles specially named .csv's and puts them in one data frame.
+```{r}
+#Part of readRAWS, use that instead
+#Or run in folder containing .csvs
+#All csvs must have the same number of columns and the same column names
+csvfiles = list.files()
+YOW_precip_inc_01_13<- do.call(rbind, lapply(csvfiles, function(x) {read.csv(x, header=TRUE)}))
+```
+
+It seems that -999 values are the straight-up missing values.
+```{r}
+MCD_Crane_Flats_01_13[MCD_Crane_Flats_01_13 == -999] = NA
+```
+
+
+Re-class the `date_time` column into one that can be parsed with the POSIXct family of functions.
+```{r}
+#Given an example date format 2001-10-01 10:00:00
+MCD_Crane_Flats_01_13$date_time = as.POSIXct(MCD_Crane_Flats_01_13$date_time,format="%Y-%m-%d %H:%M:%S")
+```
+
+Create sample categories for the purpose of doing monthly averages for example.
+```{r}
+MCD_Crane_Flats_01_13$monthYr = strftime(result$date_time, format="%Y/%m")
+```
+
+**NOTE THAT NA VALUES ARE NOT REMOVED YET. This may cause certain functions to fail in mysterious ways**
+# Treatments not applied yet that may be of interest, using Crane_Flat_RAWS as an example
+
+Lets plot temperature to look for potentially funky values and gaps in our information.
+```{r}
+plot(MCD_Crane_Flats_01_13$Temp, pch=16, cex=0.4)
+# Oh dear.
+```
+
+
+Let's take the averages of each property for each month and try to graph it.
+```{r}
+# Note, aggregate omits NAs by default. Not every function plays this nice.
+CF_Monthly_Means = aggregate(cbind(Speed,Direc,Temp,Humidty,Rad.) ~ monthYr, data=MCD_Crane_Flats_01_13, mean)
+plot(CF_Monthly_Means$Temp, pch=16, cex=0.4)
+lines(CF_Monthly_Means$Temp)
+# Yay! We see something that is cyclic as expected!
+```
+
+

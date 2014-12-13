@@ -1,0 +1,29 @@
+* Merced Watershed Stations
+
+** Crane Flats
+   - Water Years: 2001-2013
+   - Properties: date_time, speed, direc, temp humidity, rad
+
+** Jerseydale
+   - Water Years: 2002-2013 (!!! Starts at 2002!)
+   - Properties: date_time, speed, direc, temp humidity, rad
+
+** Metcalf Gap
+   - Water Years: 2001-2013
+   - Properties: date_time, speed, direc, temp humidity, rad
+
+
+* Tuolumne Watershed Stations
+
+** Gaylord Meadows
+   - Water Years: 2001-2011 (!!! Ends at 2011!)
+   - Properties: date_time, speed, direc, temp humidity, rad
+
+** Mt. Elizabeth
+   - Water Years: 2001-2013
+   - Properties: date_time, speed, direc, temp humidity, rad
+
+** White Wolf
+   - Water Years: 2001-2013
+   - Properties: date_time, speed, direc, temp humidity, rad
+	
